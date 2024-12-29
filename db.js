@@ -20,7 +20,7 @@ export async function connectToDatabase() {
 
     try {
         await client.connect();
-        const db = client.db("visaDB");
+        const db = client.db("antique_chronicles");
         cachedDb = db;
         console.log("🌿 MongoDB Connection Successful!");
         console.log("Database Name:", db.namespace);
