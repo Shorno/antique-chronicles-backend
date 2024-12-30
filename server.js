@@ -39,6 +39,17 @@ app.get("/api/artifacts", async (req, res) => {
     }
 })
 
+app.get("/api/artifacts/:artifactName", async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const artifactCollection = await db.collection("artifact");
+        const result = await artifactCollection.findOne({artifactName: req.params.name});
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+})
+
 
 app.listen(PORT, () => {
     console.log(`Local sever running on http://localhost:${PORT}/api `);
