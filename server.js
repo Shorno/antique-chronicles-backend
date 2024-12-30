@@ -39,11 +39,34 @@ app.get("/api/artifacts", async (req, res) => {
     }
 })
 
+app.get("/api/artifacts/:email", async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const artifactCollection = await db.collection("artifact");
+        const result = await artifactCollection.find({adderEmail: req.params.email}).toArray();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+})
+
 app.get("/api/artifacts/:artifactName", async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
-        const result = await artifactCollection.findOne({artifactName: req.params.name});
+        console.log(req.params)
+        const result = await artifactCollection.findOne({name: req.params.artifactName});
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+})
+
+app.put("/api/artifacts/:artifactName/like", async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const artifactCollection = await db.collection("artifact");
+        const result = await artifactCollection.updateOne({name: req.params.artifactName}, {$inc: {likeCount: 1}});
         res.json(result);
     } catch (error) {
         res.status(500).json({error: error.message});
