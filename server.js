@@ -45,7 +45,7 @@ app.get("/api/artifacts/:artifactName", async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
-        console.log(req.params)
+        // console.log(req.params)
         const result = await artifactCollection.findOne({name: req.params.artifactName});
         res.json(result);
     } catch (error) {
@@ -137,12 +137,34 @@ app.get("/api/artifacts/:artifactName/like-status", async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-async function setupIndexes(db) {
-    await db.collection(LIKES_COLLECTION).createIndex(
-        { artifactName: 1 },
-        { unique: true }
-    );
-}
+
+app.get("/api/featured-artifacts/", async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const likesCollection = db.collection(LIKES_COLLECTION);
+        const artifactCollection = db.collection("artifact");
+
+        const mostLiked = await likesCollection
+            .find()
+            .sort({ likeCount: -1 })
+            .limit(6)
+            .toArray();
+
+        const artifactDetails = await Promise.all(
+            mostLiked.map(async (likeDoc) => {
+                const artifact = await artifactCollection.findOne({ name: likeDoc.artifactName });
+                return {
+                    ...artifact,
+                    likeCount: likeDoc.likeCount,
+                    likedBy: likeDoc.likedBy
+                };
+            })
+        );
+        res.json(artifactDetails);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Local sever running on http://localhost:${PORT}/api `);
