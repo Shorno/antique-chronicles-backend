@@ -53,6 +53,16 @@ app.get("/api/artifacts/:artifactName", async (req, res) => {
     }
 })
 
+app.patch("/api/artifacts/:artifactName", async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const artifactCollection = await db.collection("artifact");
+        const result = await artifactCollection.updateOne({name: req.params.artifactName}, {$set: req.body});
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+})
 
 app.get("/api/artifacts/user/:email", async (req, res) => {
     try {
