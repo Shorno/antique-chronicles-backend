@@ -64,6 +64,21 @@ app.patch("/api/artifacts/:artifactName", async (req, res) => {
     }
 })
 
+app.delete("/api/artifacts/:artifactName", async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const artifactCollection = await db.collection("artifact");
+        const likesCollection = await db.collection(LIKES_COLLECTION);
+
+        const artifactResult = await artifactCollection.deleteOne({ name: req.params.artifactName });
+        const likesResult = await likesCollection.deleteOne({ artifactName: req.params.artifactName });
+
+        res.json({ artifactResult, likesResult });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get("/api/artifacts/user/:email", async (req, res) => {
     try {
         const db = await connectToDatabase();
