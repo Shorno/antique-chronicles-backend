@@ -48,7 +48,16 @@ const verifyToken = (req, res, next) => {
         res.status(400).send("Invalid Token");
     }
 }
+app.post("/api/auth/logout", (req, res) => {
+    res.cookie("jwt_token", "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        expires: new Date(0)
+    });
 
+    res.send({ success: true });
+});
 const LIKES_COLLECTION = 'likes';
 
 app.post("/api/artifacts", verifyToken, async (req, res) => {
@@ -241,7 +250,6 @@ app.get("/api/artifacts/search/:artifactName", verifyToken, async (req, res) => 
     }
 })
 
-//fix prod env
 
 app.listen(PORT, () => {
     console.log(`Local sever running on http://localhost:${PORT}/api `);
