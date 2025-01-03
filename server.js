@@ -70,12 +70,12 @@ app.delete("/api/artifacts/:artifactName", async (req, res) => {
         const artifactCollection = await db.collection("artifact");
         const likesCollection = await db.collection(LIKES_COLLECTION);
 
-        const artifactResult = await artifactCollection.deleteOne({ name: req.params.artifactName });
-        const likesResult = await likesCollection.deleteOne({ artifactName: req.params.artifactName });
+        const artifactResult = await artifactCollection.deleteOne({name: req.params.artifactName});
+        const likesResult = await likesCollection.deleteOne({artifactName: req.params.artifactName});
 
-        res.json({ artifactResult, likesResult });
+        res.json({artifactResult, likesResult});
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -93,12 +93,12 @@ app.get("/api/artifacts/user/:email", async (req, res) => {
 app.post("/api/artifacts/:artifactName/toggle-like", async (req, res) => {
     try {
         const db = await connectToDatabase();
-        const { userEmail } = req.body;
-        const { artifactName } = req.params;
+        const {userEmail} = req.body;
+        const {artifactName} = req.params;
 
         const likesCollection = db.collection(LIKES_COLLECTION);
 
-        const existingDoc = await likesCollection.findOne({ artifactName });
+        const existingDoc = await likesCollection.findOne({artifactName});
 
         if (!existingDoc) {
             await likesCollection.insertOne({
@@ -106,52 +106,52 @@ app.post("/api/artifacts/:artifactName/toggle-like", async (req, res) => {
                 likedBy: [userEmail],
                 likeCount: 1
             });
-            return res.json({ liked: true, totalLikes: 1 });
+            return res.json({liked: true, totalLikes: 1});
         }
 
         const hasLiked = existingDoc.likedBy.includes(userEmail);
 
         if (hasLiked) {
             await likesCollection.updateOne(
-                { artifactName },
+                {artifactName},
                 {
-                    $pull: { likedBy: userEmail },
-                    $inc: { likeCount: -1 }
+                    $pull: {likedBy: userEmail},
+                    $inc: {likeCount: -1}
                 }
             );
-            const updatedDoc = await likesCollection.findOne({ artifactName });
+            const updatedDoc = await likesCollection.findOne({artifactName});
             return res.json({
                 liked: false,
                 totalLikes: updatedDoc.likeCount
             });
         } else {
             await likesCollection.updateOne(
-                { artifactName },
+                {artifactName},
                 {
-                    $addToSet: { likedBy: userEmail },
-                    $inc: { likeCount: 1 }
+                    $addToSet: {likedBy: userEmail},
+                    $inc: {likeCount: 1}
                 }
             );
-            const updatedDoc = await likesCollection.findOne({ artifactName });
+            const updatedDoc = await likesCollection.findOne({artifactName});
             return res.json({
                 liked: true,
                 totalLikes: updatedDoc.likeCount
             });
         }
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
 app.get("/api/artifacts/:artifactName/like-status", async (req, res) => {
     try {
         const db = await connectToDatabase();
-        const { userEmail } = req.query;
-        const { artifactName } = req.params;
+        const {userEmail} = req.query;
+        const {artifactName} = req.params;
 
         const doc = await db.collection(LIKES_COLLECTION).findOne(
-            { artifactName },
-            { projection: { likedBy: 1, likeCount: 1 } }
+            {artifactName},
+            {projection: {likedBy: 1, likeCount: 1}}
         );
 
         res.json({
@@ -159,7 +159,7 @@ app.get("/api/artifacts/:artifactName/like-status", async (req, res) => {
             totalLikes: doc?.likeCount || 0
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -171,13 +171,13 @@ app.get("/api/featured-artifacts/", async (req, res) => {
 
         const mostLiked = await likesCollection
             .find()
-            .sort({ likeCount: -1 })
+            .sort({likeCount: -1})
             .limit(6)
             .toArray();
 
         const artifactDetails = await Promise.all(
             mostLiked.map(async (likeDoc) => {
-                const artifact = await artifactCollection.findOne({ name: likeDoc.artifactName });
+                const artifact = await artifactCollection.findOne({name: likeDoc.artifactName});
                 return {
                     ...artifact,
                     likeCount: likeDoc.likeCount,
@@ -187,9 +187,25 @@ app.get("/api/featured-artifacts/", async (req, res) => {
         );
         res.json(artifactDetails);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 });
+
+app.get("/api/artifacts/search/:artifactName", async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const artifactCollection = await db.collection("artifact");
+        const result = await artifactCollection.find({
+            name: {
+                $regex: req.params.artifactName,
+                $options: 'i'
+            }
+        }).toArray();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+})
 
 app.listen(PORT, () => {
     console.log(`Local sever running on http://localhost:${PORT}/api `);
