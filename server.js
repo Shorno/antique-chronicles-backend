@@ -241,6 +241,8 @@ app.get("/api/artifacts/search/:artifactName", verifyToken, async (req, res) => 
     }
 })
 
+//fix prod env
+
 app.listen(PORT, () => {
     console.log(`Local sever running on http://localhost:${PORT}/api `);
 });
