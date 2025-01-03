@@ -1,11 +1,18 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser"
+import jwt from "jsonwebtoken";
 import {connectToDatabase} from "./db.js";
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:5173"],
+    credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser())
 const PORT = process.env.PORT || 3000;
+
 
 app.get("/", (req, res) => {
     res.send("Check api routes at /api");
@@ -15,13 +22,39 @@ app.get("/api", (req, res) => {
     res.send("Hello World");
 })
 
+app.post("/api/auth/verify", async (req, res) => {
+    const user = req.body;
+    const jwt_token = jwt.sign(user, process.env.JWT_SECRET, {expiresIn: "1h"});
+
+    res.cookie("jwt_token", jwt_token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    })
+    res.send({success: true});
+})
+
+const verifyToken = (req, res, next) => {
+    const token = req.cookies.jwt_token;
+    if (!token) {
+        return res.status(401).send("Access Denied");
+    }
+
+    try {
+        const verified = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = verified;
+        next();
+    } catch (error) {
+        res.status(400).send("Invalid Token");
+    }
+}
+
 const LIKES_COLLECTION = 'likes';
 
-app.post("/api/artifacts", async (req, res) => {
+app.post("/api/artifacts", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifact = req.body;
-        console.log(artifact);
         const artifactCollection = await db.collection("artifact");
         const result = await artifactCollection.insertOne(artifact);
         res.json(result);
@@ -34,6 +67,7 @@ app.get("/api/artifacts", async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
+        console.log("Cookie", req.cookies)
         const result = await artifactCollection.find().toArray();
         res.json(result);
     } catch (error) {
@@ -41,7 +75,7 @@ app.get("/api/artifacts", async (req, res) => {
     }
 })
 
-app.get("/api/artifacts/:artifactName", async (req, res) => {
+app.get("/api/artifacts/:artifactName", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
@@ -53,7 +87,7 @@ app.get("/api/artifacts/:artifactName", async (req, res) => {
     }
 })
 
-app.patch("/api/artifacts/:artifactName", async (req, res) => {
+app.patch("/api/artifacts/:artifactName", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
@@ -64,7 +98,7 @@ app.patch("/api/artifacts/:artifactName", async (req, res) => {
     }
 })
 
-app.delete("/api/artifacts/:artifactName", async (req, res) => {
+app.delete("/api/artifacts/:artifactName", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
@@ -79,7 +113,7 @@ app.delete("/api/artifacts/:artifactName", async (req, res) => {
     }
 });
 
-app.get("/api/artifacts/user/:email", async (req, res) => {
+app.get("/api/artifacts/user/:email", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
@@ -90,7 +124,7 @@ app.get("/api/artifacts/user/:email", async (req, res) => {
     }
 })
 
-app.post("/api/artifacts/:artifactName/toggle-like", async (req, res) => {
+app.post("/api/artifacts/:artifactName/toggle-like", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const {userEmail} = req.body;
@@ -143,7 +177,7 @@ app.post("/api/artifacts/:artifactName/toggle-like", async (req, res) => {
     }
 });
 
-app.get("/api/artifacts/:artifactName/like-status", async (req, res) => {
+app.get("/api/artifacts/:artifactName/like-status", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const {userEmail} = req.query;
@@ -191,7 +225,7 @@ app.get("/api/featured-artifacts/", async (req, res) => {
     }
 });
 
-app.get("/api/artifacts/search/:artifactName", async (req, res) => {
+app.get("/api/artifacts/search/:artifactName", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
