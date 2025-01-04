@@ -89,7 +89,7 @@ app.get("/api/artifacts/:artifactName", verifyToken, async (req, res) => {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
         // console.log(req.params)
-        const result = await artifactCollection.findOne({name: req.params.artifactName});
+        const result = await artifactCollection.findOne({name: new RegExp(`^${req.params.artifactName}$`, 'i')});
         res.json(result);
     } catch (error) {
         res.status(500).json({error: error.message});
@@ -100,7 +100,7 @@ app.patch("/api/artifacts/:artifactName", verifyToken, async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
-        const result = await artifactCollection.updateOne({name: req.params.artifactName}, {$set: req.body});
+        const result = await artifactCollection.updateOne({name: new RegExp(`^${req.params.artifactName}$`, 'i')}, {$set: req.body});
         res.json(result);
     } catch (error) {
         res.status(500).json({error: error.message});
@@ -113,8 +113,8 @@ app.delete("/api/artifacts/:artifactName", verifyToken, async (req, res) => {
         const artifactCollection = await db.collection("artifact");
         const likesCollection = await db.collection(LIKES_COLLECTION);
 
-        const artifactResult = await artifactCollection.deleteOne({name: req.params.artifactName});
-        const likesResult = await likesCollection.deleteOne({artifactName: req.params.artifactName});
+        const artifactResult = await artifactCollection.deleteOne({name: new RegExp(`^${req.params.artifactName}$`, 'i')});
+        const likesResult = await likesCollection.deleteOne({artifactName: new RegExp(`^${req.params.artifactName}$`, 'i')});
 
         res.json({artifactResult, likesResult});
     } catch (error) {
