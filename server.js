@@ -56,7 +56,7 @@ app.post("/api/auth/logout", (req, res) => {
         expires: new Date(0)
     });
 
-    res.send({ success: true });
+    res.send({success: true});
 });
 const LIKES_COLLECTION = 'likes';
 
@@ -250,6 +250,30 @@ app.get("/api/artifacts/search/:artifactName", async (req, res) => {
     }
 })
 
+
+app.get("/api/liked-artifacts/:email", verifyToken, async (req, res) => {
+    try {
+        const db = await connectToDatabase();
+        const likesCollection = db.collection(LIKES_COLLECTION);
+        const artifactCollection = db.collection("artifact");
+
+        const likedArtifacts = await likesCollection.find({likedBy: req.params.email}).toArray();
+
+        const artifactDetails = await Promise.all(
+            likedArtifacts.map(async (likeDoc) => {
+                const artifact = await artifactCollection.findOne({name: likeDoc.artifactName});
+                return {
+                    ...artifact,
+                    likeCount: likeDoc.likeCount,
+                    likedBy: likeDoc.likedBy
+                };
+            })
+        );
+        res.json(artifactDetails);
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Local sever running on http://localhost:${PORT}/api `);
