@@ -234,7 +234,7 @@ app.get("/api/featured-artifacts/", async (req, res) => {
     }
 });
 
-app.get("/api/artifacts/search/:artifactName", verifyToken, async (req, res) => {
+app.get("/api/artifacts/search/:artifactName", async (req, res) => {
     try {
         const db = await connectToDatabase();
         const artifactCollection = await db.collection("artifact");
