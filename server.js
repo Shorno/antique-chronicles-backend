@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser"
 import jwt from "jsonwebtoken";
 import {connectToDatabase} from "./db.js";
+import puppeteer from "puppeteer";
 
 const app = express();
 app.use(cors({
@@ -272,6 +273,35 @@ app.get("/api/liked-artifacts/:email", verifyToken, async (req, res) => {
         res.json(artifactDetails);
     } catch (error) {
         res.status(500).json({error: error.message});
+    }
+});
+
+
+app.get("/api/metadata/", async (req, res) => {
+    const url = req.query.url;
+    if (!url) {
+        return res.status(400).json({error: "URL is required"});
+    }
+    const {hostname} = new URL(url);
+
+    try {
+        const browser = await puppeteer.launch({
+                headless: true,
+                args: ["--no-sandbox", "--disable-setuid-sandbox"],
+            }
+        );
+        const page = await browser.newPage();
+        await page.goto(url, {waitUntil: "networkidle2"});
+        const title = await page.title();
+        await browser.close();
+
+        if (!title || title === "" || title === "Just a moment...") {
+            return res.json({title: hostname});
+        }
+
+        return res.json({title});
+    } catch (error) {
+        return res.status(500).json({error: "Failed to fetch title", details: error.message});
     }
 });
 
